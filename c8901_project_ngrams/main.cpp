@@ -1,3 +1,8 @@
+/**
+* The N-Gram code is based on the pseudocode found in the textbook
+* Artificial Intelligence for Games (2nd edition) by Ian Millington.
+*/
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -195,19 +200,22 @@ int main() {
 
 	while (keepRunning) {
 		try {
+			RPSChoice aiChoice = randomChoice();
+
+			if (actions.size() > WINDOW_SIZE) {
+				// Take only the last N actions
+				std::vector<RPSChoice> recentHistory(actions.begin() + (actions.size() - WINDOW_SIZE), actions.begin() + (actions.size()));
+
+				RPSChoice mostLikely = getMostLikely(recentHistory);
+				aiChoice = winningOption(mostLikely);
+			}
 			printOptions();
 			std::getline(std::cin, line);
 			actions.push_back(getOption(line));
-
-			RPSChoice aiChoice = randomChoice();
 			if (actions.size() > WINDOW_SIZE) {
 				// Take only the last N actions
 				std::vector<RPSChoice> recentHistory(actions.begin() + (actions.size() - N), actions.begin() + (actions.size()));
 				registerSequence(recentHistory);
-				// Remove the first element so that we have WINDOW_SIZE elements
-				recentHistory.erase(recentHistory.begin());
-				RPSChoice mostLikely = getMostLikely(recentHistory);
-				aiChoice = winningOption(mostLikely);
 			}
 
 			std::cout << "Your choice: " << RPSChoiceToString(actions.back()) << std::endl;
