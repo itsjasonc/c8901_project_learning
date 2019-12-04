@@ -3,7 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <exception>
-#include <unordered_map>
+#include <map>
 #include <random>
 
 enum class RPSChoice {
@@ -12,11 +12,27 @@ enum class RPSChoice {
 	SCISSORS
 };
 
-std::vector<RPSChoice> playerChoices;
+struct KeyDataRecord {
+public:
+	// Holds the counts for each successor action
+	std::map<RPSChoice, int> counts;
+
+	// Holds the total number of times the window has been seen
+	int total;
+
+	KeyDataRecord() : total(0) {
+		
+	}
+};
+
+// Holds the frequency data
+std::map<std::vector<RPSChoice>, KeyDataRecord> data;
 int yourWins;
 int aiWins;
 int totalGames;
-const int N_GRAM_THRESHOLD = 3;
+const int WINDOW_SIZE = 2;
+// Holds the size of the window + 1
+const int N = WINDOW_SIZE + 1;
 
 std::string RPSChoiceToString(RPSChoice choice) {
 	switch (choice) {
@@ -79,6 +95,16 @@ int rpsWinner(RPSChoice lhs, RPSChoice rhs) {
 	throw std::exception("Unhandled RPSChoice.");
 }
 
+RPSChoice randomChoice() {
+	static RPSChoice choices[3] = {
+		RPSChoice::ROCK,
+		RPSChoice::PAPER,
+		RPSChoice::SCISSORS
+	};
+
+	return choices[rand() % 3];
+}
+
 void printOptions() {
 	std::cout << "Your options:" << std::endl;
 	std::cout << "Rock - R/r" << std::endl;
@@ -114,64 +140,80 @@ RPSChoice getOption(std::string line) {
 	throw std::exception("Unhandled option.");
 }
 
-RPSChoice predictChoice() {
-	std::unordered_map<std::string, int> probability;
+/**
+* Registers a set of actions with predictor, updating
+* its data. We assume actions has exactly N elements
+* in it.
+*/
+void registerSequence(std::vector<RPSChoice> recentHistory) {
+	// Split the sequence into a key and value
+	// value is the most recent player choice
+	std::vector<RPSChoice> key(recentHistory.begin() + 1, recentHistory.end());
+	RPSChoice value = recentHistory.back();
 
-	static std::string choices[9] = {
-		"RR", "RP", "RS",
-		"PR", "PP", "PS",
-		"SR", "SP", "SS"
-	};
+	// Add to the total, and to the count for the value
+	data[key].counts[value] += 1;
+	data[key].total += 1;
+}
 
-	for (auto c : choices) {
-		probability[c] = 0;
+// Gets the next action most likely from the given one.
+// We assume actions has N - 1 elements in it (i.e. the
+// size of the window).
+RPSChoice getMostLikely(std::vector<RPSChoice> recentHistory) {
+
+	// Find the highest probability
+	auto highestValue = 0;
+	auto bestAction = RPSChoice::ROCK;
+
+	// Get the list of previous actions that occurred
+	// after the WINDOW_SIZE sequence
+	std::vector<RPSChoice> actions;
+	for (auto it : data[recentHistory].counts) {
+		actions.push_back(it.first);
 	}
 
-	if (playerChoices.size() < N_GRAM_THRESHOLD) {
-		static RPSChoice randomChoices[3] = {
-			RPSChoice::ROCK,
-			RPSChoice::PAPER,
-			RPSChoice::SCISSORS
-		};
-		// random option
-		int r = rand() % 3;
-		return randomChoices[r];
-	}
-	else {
-
-		RPSChoice highestChance = RPSChoice::ROCK;
-		int highestCount = probability[RPSChoice::ROCK];
-		for (auto& it : probability) {
-			if (it.second > highestCount) {
-				highestChance = it.first;
-				highestCount = it.second;
-			}
+	// Go through each action and determine the most likely
+	// action
+	for (auto action : actions) {
+		if (data[recentHistory].counts[action] > highestValue) {
+			highestValue = data[recentHistory].counts[action];
+			bestAction = action;
 		}
-		std::cout << "Highest probability: " << RPSChoiceToString(highestChance) << std::endl;
-		return highestChance;
 	}
+
+	return bestAction;
 }
 
 int main() {
-	playerChoices = std::vector<RPSChoice>();
-
 	bool keepRunning = true;
 	std::string line;
 	yourWins = 0;
 	aiWins = 0;
 	totalGames = 0;
 
+	std::vector<RPSChoice> actions;
+
 	while (keepRunning) {
 		try {
 			printOptions();
-			RPSChoice aiChoice = winningOption(predictChoice());
 			std::getline(std::cin, line);
-			playerChoices.push_back(getOption(line));
+			actions.push_back(getOption(line));
 
-			std::cout << "Your choice: " << RPSChoiceToString(playerChoices.back()) << std::endl;
+			RPSChoice aiChoice = randomChoice();
+			if (actions.size() > WINDOW_SIZE) {
+				// Take only the last N actions
+				std::vector<RPSChoice> recentHistory(actions.begin() + (actions.size() - N), actions.begin() + (actions.size()));
+				registerSequence(recentHistory);
+				// Remove the first element so that we have WINDOW_SIZE elements
+				recentHistory.erase(recentHistory.begin());
+				RPSChoice mostLikely = getMostLikely(recentHistory);
+				aiChoice = winningOption(mostLikely);
+			}
+
+			std::cout << "Your choice: " << RPSChoiceToString(actions.back()) << std::endl;
 			std::cout << "AI choice: " << RPSChoiceToString(aiChoice) << std::endl;
 
-			int playerWon = rpsWinner(playerChoices.back(), aiChoice);
+			int playerWon = rpsWinner(actions.back(), aiChoice);
 			if (playerWon == 1) {
 				std::cout << "You win." << std::endl;
 				yourWins++;
@@ -184,23 +226,6 @@ int main() {
 				aiWins++;
 			}
 			totalGames++;
-#if DEBUG
-			for (auto option : playerChoices) {
-				switch (option) {
-				case RPSChoice::ROCK:
-					std::cout << "ROCK";
-					break;
-				case RPSChoice::PAPER:
-					std::cout << "PAPER";
-					break;
-				case RPSChoice::SCISSORS:
-					std::cout << "SCISSORS";
-					break;
-				}
-				std::cout << ",";
-			}
-			std::cout << std::endl;
-#endif
 		}
 		catch (std::exception & ex) {
 			std::cout << ex.what() << std::endl;
