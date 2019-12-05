@@ -40,6 +40,7 @@ private:
 
 Dog::Dog() {
 	happiness = MAX_HAPPINESS / 2;
+	currentState = nullptr;
 }
 
 void Dog::ignore() {
