@@ -48,7 +48,7 @@ std::string RPSChoiceToString(RPSChoice choice) {
 	case RPSChoice::SCISSORS:
 		return "SCISSORS";
 	}
-	throw std::exception("Unhandled RPSChoice.");
+	throw "Unhandled RPSChoice.";
 }
 
 RPSChoice winningOption(RPSChoice choice) {
@@ -60,7 +60,7 @@ RPSChoice winningOption(RPSChoice choice) {
 	case RPSChoice::SCISSORS:
 		return RPSChoice::ROCK;
 	}
-	throw std::exception("Unhandled RPSChoice.");
+	throw "Unhandled RPSChoice.";
 }
 
 int rpsWinner(RPSChoice lhs, RPSChoice rhs) {
@@ -97,7 +97,7 @@ int rpsWinner(RPSChoice lhs, RPSChoice rhs) {
 			return 0;
 		}
 	}
-	throw std::exception("Unhandled RPSChoice.");
+	throw "Unhandled RPSChoice.";
 }
 
 RPSChoice randomChoice() {
@@ -134,7 +134,7 @@ RPSChoice getOption(std::string line) {
 		return RPSChoice::SCISSORS;
 	}
 	else if (line == "q") {
-		throw std::exception("Quit called.");
+		throw "Quit called.";
 	}
 	else if (line == "h") {
 		std::cout << "Your wins: " << yourWins << std::endl;
@@ -142,7 +142,7 @@ RPSChoice getOption(std::string line) {
 		std::cout << "AI win rate: " << (aiWins / totalGames) << std::endl;
 	}
 
-	throw std::exception("Unhandled option.");
+	throw "Unhandled option.";
 }
 
 /**
@@ -234,6 +234,12 @@ int main() {
 				aiWins++;
 			}
 			totalGames++;
+		}
+		catch (const char* msg) {
+			std::cout << msg << std::endl;
+			if (std::strcmp(msg, "Quit called.") == 0) {
+				keepRunning = false;
+			}
 		}
 		catch (std::exception & ex) {
 			std::cout << ex.what() << std::endl;

@@ -139,7 +139,12 @@ int main() {
 
 		try {
 			char c;
-			int numFound = scanf_s(" %c", &c);
+			int numFound = 0;
+#if __APPLE__
+			numFound = scanf(" %c", &c);
+#else
+			numFound = scanf_s(" %c", &c);
+#endif
 			char throwaway = getchar();
 			if (isGuessed(c)) {
 				std::cout << "You've already guessed this character." << std::endl;
@@ -155,6 +160,11 @@ int main() {
 				aiSolution = newSolution;
 				bestScore = score;
 			}
+		}
+		catch (const char* msg) {
+			std::cerr << msg << std::endl;
+			keepRunning = false;
+			break;
 		}
 		catch (std::exception & ex) {
 			std::cerr << ex.what() << std::endl;

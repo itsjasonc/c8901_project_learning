@@ -74,10 +74,10 @@ CHOICE getOption(std::string line) {
 		return CHOICE::PLAY;
 	}
 	else if (line == "q") {
-		throw std::exception("Quit called.");
+		throw "Quit called.";
 	}
 
-	throw std::exception("Unhandled option.");
+	throw "Unhandled option.";
 }
 
 const int NUM_STATES = 3;
@@ -105,15 +105,15 @@ int main() {
 	Dog doge;
 	states[0].name = "happy";
 	states[0].lambda = [] {
-		std::cout << "DOG IS HAPPY!";
+		std::cout << "DOG IS HAPPY!" << std::endl;
 	};
 	states[1].name = "unhappy";
 	states[1].lambda = [] {
-		std::cout << "DOG IS UNHAPPY!";
+		std::cout << "DOG IS UNHAPPY!" << std::endl;
 	};
 	states[2].name = "satisfied";
 	states[2].lambda = [] {
-		std::cout << "DOG IS SATISFIED!";
+		std::cout << "DOG IS SATISFIED!" << std::endl;
 	};
 
 	std::string line;
@@ -136,9 +136,14 @@ int main() {
 				break;
 			}
 
-			std::cout << "Doge's happiness: " << doge.happiness << std::endl;
-
 			setDogeState(doge);
+			doge.currentState->run();
+		}
+		catch (const char* msg) {
+			std::cout << msg << std::endl;
+			if (std::strcmp(msg, "Quit called.") == 0) {
+				keepRunning = false;
+			}
 		}
 		catch (std::exception & ex) {
 			std::cout << ex.what() << std::endl;
